@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>NutriScan – Construye tu Plato Saludable</title>
+<style>
+    body { font-family: Arial; background:#f5f5f5; padding:20px; }
+    h1 { text-align:center; }
+    #food-list { display:flex; flex-wrap:wrap; gap:20px; margin-top:20px; }
+    .food-item { background:white; padding:10px; border-radius:8px; width:140px; box-shadow:0 0 6px #aaa; text-align:center; cursor:pointer; }
+    .qr { margin-top:10px; }
+    #log { background:white; padding:15px; margin-top:20px; border-radius:8px; min-height:120px; box-shadow:0 0 6px #aaa; }
+    #status { font-size:20px; font-weight:bold; margin-top:20px; }
+    #timer { font-size:24px; text-align:center; margin:20px 0; }
+</style>
+</head>
+<body>
+
+<h1>NUTRISCAN – Construye tu plato saludable</h1>
+
+<div id="timer">⏱ Tiempo: 180 s</div>
+
+<h2>Escanea un alimento tocando su QR:</h2>
+
+<div id="food-list"></div>
+
+<h2>Registro:</h2>
+<div id="log"></div>
+
+<h2>Resultado:</h2>
+<div id="status"></div>
+
+<script>
+/* ------------------------------------------
+   BASE DE DATOS DE ALIMENTOS
+-------------------------------------------*/
+const foods = [
+  {name:"Arroz Integral", group:"Carbohidrato", points:10},
+  {name:"Pan Integral", group:"Carbohidrato", points:10},
+  {name:"Pollo", group:"Proteína", points:10},
+  {name:"Huevos", group:"Proteína", points:10},
+  {name:"Manzana", group:"Fruta/Verdura", points:10},
+  {name:"Zanahoria", group:"Fruta/Verdura", points:10},
+  {name:"Aguacate", group:"Grasa Saludable", points:10},
+  {name:"Nueces", group:"Grasa Saludable", points:10},
+
+  {name:"Refresco", group:"Azucarado", points:-5},
+  {name:"Galletas", group:"Azucarado", points:-5},
+  {name:"Patatas Fritas", group:"Ultraprocesado", points:-3},
+  {name:"Chocolate con leche", group:"Azucarado", points:-5}
+];
+
+/* ------------------------------------------
+   GENERADOR DE QR EN SVG (simple)
+-------------------------------------------*/
+function makeQR(text){
+    return `<svg width="100" height="100">
+      <rect width="100" height="100" fill="#fff"></rect>
+      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="10">
+        ${text.replace(/ /g,"_")}
+      </text>
+    </svg>`;
+}
+
+/* ------------------------------------------
+   MOSTRAR ALIMENTOS
+-------------------------------------------*/
+const list = document.getElementById("food-list");
+foods.forEach((f,i)=>{
+    const div = document.createElement("div");
+    div.className="food-item";
+    div.innerHTML = `
+        <strong>${f.name}</strong><br>${f.group}
+        <div class="qr">${makeQR("QR_"+i)}</div>
+        <button onclick="scan(${i})">Escanear</button>
+    `;
+    list.appendChild(div);
+});
+
+/* ------------------------------------------
+   LÓGICA DEL JUEGO
+-------------------------------------------*/
+let chosen = [];
+let points = 0;
+let time = 180;
+let timer = setInterval(()=>{
+    time--;
+    document.getElementById("timer").textContent = "⏱ Tiempo: " + time + " s";
+    if(time<=0){ endGame(); }
+},1000);
+
+function scan(id){
+    if(chosen.length >=4){
+        log("⚠️ Máximo 4 alimentos.");
+        return;
+    }
+    const food = foods[id];
+    chosen.push(food);
+    points += food.points;
+
+    log(`🔍 Escaneado: <b>${food.name}</b> (${food.group}) — Puntos: ${points}`);
+
+    if(chosen.length===4) endGame();
+}
+
+/* ------------------------------------------ */
+function log(msg){
+    document.getElementById("log").innerHTML += msg+"<br>";
+}
+
+/* ------------------------------------------
+   EVALUACIÓN FINAL
+-------------------------------------------*/
+function endGame(){
+    clearInterval(timer);
+
+    const groups = chosen.map(f=>f.group);
+
+    let good = 
+        groups.includes("Carbohidrato") &&
+        groups.includes("Proteína") &&
+        groups.includes("Fruta/Verdura") &&
+        groups.includes("Grasa Saludable");
+
+    let status = document.getElementById("status");
+
+    if(good && points > 20){
+        status.innerHTML = "🟢 <b>PLATO EQUILIBRADO</b><br>Puntuación: "+points;
+    } 
+    else if(points > 5){
+        status.innerHTML = "🟡 <b>Casi equilibrado</b><br>Puntuación: "+points;
+    }
+    else {
+        status.innerHTML = "🔴 <b>Reinténtalo</b><br>Puntuación: "+points;
+    }
+}
+</script>
+
+</body>
+</html>
